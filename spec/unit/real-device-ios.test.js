@@ -24,7 +24,7 @@ const { test } = require('node:test');
 
 const ParamedicConfig = require('../../lib/ParamedicConfig');
 const LocalServer = require('../../lib/LocalServer');
-const { getLanAddress, getIosDeviceRunArgs, getIosDeviceBuildArgs } = require('../../lib/utils/utilities');
+const { getLanAddress, getIosDeviceRunArgs, getIosDeviceBuildArgs, pickWiredIosDevice } = require('../../lib/utils/utilities');
 
 const config = (json) => new ParamedicConfig({ platform: 'ios', ...json });
 
@@ -79,4 +79,24 @@ test('the build for a device has the user arguments and --device, and no target 
     );
     assert.deepEqual(getIosDeviceBuildArgs(['--device']).filter(a => a === '--device'), ['--device']);
     assert.ok(!getIosDeviceBuildArgs([]).includes('--target'));
+});
+
+const device = (udid, transportType, name = 'iPhone', platform = 'iOS') => ({
+    hardwareProperties: { udid, platform },
+    connectionProperties: { transportType },
+    deviceProperties: { name }
+});
+
+test('the iPhone connected by cable is the one picked, not one that is only on the network', () => {
+    const json = { result: { devices: [device('NET', 'localNetwork'), device('USB', 'wired', 'iPhone 16')] } };
+    assert.equal(pickWiredIosDevice(json), 'USB');
+});
+
+test('with none, or several, connected by cable it refuses and says what to do', () => {
+    assert.throws(() => pickWiredIosDevice({ result: { devices: [device('NET', 'localNetwork')] } }), /No iPhone is connected by cable/);
+    assert.throws(() => pickWiredIosDevice({ result: { devices: [device('A', 'wired'), device('B', 'wired')] } }), /A\)[\s\S]*B\)/);
+});
+
+test('a device that is not an iPhone or iPad does not count', () => {
+    assert.throws(() => pickWiredIosDevice({ result: { devices: [device('W', 'wired', 'Watch', 'watchOS')] } }), /No iPhone/);
 });

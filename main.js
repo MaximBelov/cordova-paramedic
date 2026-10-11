@@ -47,7 +47,7 @@ cordova-paramedic --platform PLATFORM --plugin PATH [--justbuild --timeout MSECS
 --cli : (optional) A path to Cordova CLI
 --config : (optional) read configuration from paramedic configuration file
 --device : (optional) iOS only - run on a physical device instead of a simulator.
-    --target is then the device's UDID, and the app reports to this machine's LAN address
+    --target is then the device's UDID (default: the one connected by cable), and the app reports to this machine's LAN address
     (see --medicHost). Signing goes through --args, e.g. --args=--buildConfig=/path/build.json
 --justbuild : (optional) just builds the project, without running the tests
 --medicHost : (optional) the address the app reports its results to
