@@ -288,7 +288,9 @@ cordova-paramedic --platform ios --plugin cordova-plugin-contacts --tccDbPath tc
 
 #### `--device` (optional)
 
-iOS only. Runs on a physical device instead of a simulator. paramedic adds `--emulator` to every other iOS run (CB-11472) and
+Runs on a physical phone instead of a simulator or emulator. With `--target` left out it is the iPhone connected by cable, or the Android
+phone connected by USB (not an emulator, a device that is only on the network, or one that has not allowed this computer). An Android
+phone reports through `adb reverse`, which paramedic sets up for the run and removes after it. The rest is about iOS: paramedic adds `--emulator` to every other iOS run (CB-11472) and
 `cordova run ios` refuses `--device` together with it, so a device run takes neither that nor the simulator chooser: `--target` is the
 device's UDID (`xcrun xctrace list devices`), or, when left out, the one iPhone connected by cable. The app is not uninstalled afterwards.
 

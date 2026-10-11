@@ -46,9 +46,10 @@ cordova-paramedic --platform PLATFORM --plugin PATH [--justbuild --timeout MSECS
     A physical iPhone needs one the signing team can register.
 --cli : (optional) A path to Cordova CLI
 --config : (optional) read configuration from paramedic configuration file
---device : (optional) iOS only - run on a physical device instead of a simulator.
-    --target is then the device's UDID (default: the one connected by cable), and the app reports to this machine's LAN address
-    (see --medicHost). Signing goes through --args, e.g. --args=--buildConfig=/path/build.json
+--device : (optional) run on a physical phone instead of a simulator or emulator. With --target left out it is the iPhone
+    connected by cable, or the Android phone connected by USB. An iPhone reports to this machine's LAN address (see
+    --medicHost) and is signed through --args, e.g. --args=--buildConfig=/path/build.json; an Android phone reports
+    through "adb reverse".
 --justbuild : (optional) just builds the project, without running the tests
 --medicHost : (optional) the address the app reports its results to
     (default: 127.0.0.1, the Android emulator's 10.0.2.2, or this machine's LAN address with --device)

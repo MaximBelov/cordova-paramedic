@@ -24,7 +24,7 @@ const { test } = require('node:test');
 
 const ParamedicConfig = require('../../lib/ParamedicConfig');
 const LocalServer = require('../../lib/LocalServer');
-const { getLanAddress, getIosDeviceRunArgs, getIosDeviceBuildArgs, pickWiredIosDevice } = require('../../lib/utils/utilities');
+const { getLanAddress, getIosDeviceRunArgs, getIosDeviceBuildArgs, pickWiredIosDevice, pickUsbAndroidDevice } = require('../../lib/utils/utilities');
 
 const config = (json) => new ParamedicConfig({ platform: 'ios', ...json });
 
@@ -99,4 +99,27 @@ test('with none, or several, connected by cable it refuses and says what to do',
 
 test('a device that is not an iPhone or iPad does not count', () => {
     assert.throws(() => pickWiredIosDevice({ result: { devices: [device('W', 'wired', 'Watch', 'watchOS')] } }), /No iPhone/);
+});
+
+const adbOutput = (...lines) => ['List of devices attached', ...lines, ''].join('\n');
+
+test('the Android phone connected by USB is the one picked, not an emulator or a network device', () => {
+    const out = adbOutput(
+        '67031JEA303353         device usb:1048576X product:stallion model:Pixel_10a device:stallion transport_id:1',
+        'emulator-5554          device product:sdk_gphone model:sdk transport_id:2',
+        '192.168.1.5:5555       device product:x model:Y transport_id:3'
+    );
+    assert.equal(pickUsbAndroidDevice(out), '67031JEA303353');
+});
+
+test('with no phone ready by USB, or several, it refuses and says what is wrong', () => {
+    assert.throws(() => pickUsbAndroidDevice(adbOutput('emulator-5554 device transport_id:2')), /No Android phone is connected by USB/);
+    assert.throws(() => pickUsbAndroidDevice(adbOutput('R58M123 unauthorized usb:1 transport_id:4')), /R58M123 \(unauthorized\)/);
+    assert.throws(() => pickUsbAndroidDevice(adbOutput('A device usb:1 transport_id:1', 'B device usb:2 transport_id:2')), /A, B/);
+});
+
+test('an Android phone reports on 127.0.0.1 (adb reverse), an emulator on 10.0.2.2', () => {
+    const server = (json) => new LocalServer(config({ platform: 'android', ...json }), null, 1);
+    assert.equal(server({ device: true }).getServerIP('android'), '127.0.0.1');
+    assert.equal(server({}).getServerIP('android'), '10.0.2.2');
 });
