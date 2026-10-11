@@ -1,0 +1,82 @@
+/*
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+*/
+
+// What a run on a PHYSICAL iPhone needs and a simulator run does not: no `--emulator`, an address the phone can reach this machine
+// on, a bundle id the signing team can register, and extra arguments that arrive as an array.
+const assert = require('node:assert/strict');
+const { test } = require('node:test');
+
+const ParamedicConfig = require('../../lib/ParamedicConfig');
+const LocalServer = require('../../lib/LocalServer');
+const { getLanAddress, getIosDeviceRunArgs, getIosDeviceBuildArgs } = require('../../lib/utils/utilities');
+
+const config = (json) => new ParamedicConfig({ platform: 'ios', ...json });
+
+test('getArgs is an array whatever it was given: spreading a string would give one argument per character', () => {
+    assert.deepEqual(config({ args: ['--buildConfig=/a/build.json'] }).getArgs(), ['--buildConfig=/a/build.json']);
+    assert.deepEqual(config({ args: '--buildFlag=-x  --verbose' }).getArgs(), ['--buildFlag=-x', '--verbose']);
+    assert.deepEqual(config({ args: '' }).getArgs(), []);
+    assert.deepEqual(config({}).getArgs(), []);
+});
+
+test('the command line reads --device, --appId and --medicHost', () => {
+    const parsed = ParamedicConfig.parseFromArguments({ platform: 'ios', plugin: '.', device: true, appId: 'com.example.t', medicHost: '10.0.0.5' });
+    assert.equal(parsed.isDevice(), true);
+    assert.equal(parsed.getAppId(), 'com.example.t');
+    assert.equal(parsed.getMedicHost(), '10.0.0.5');
+    assert.equal(ParamedicConfig.parseFromArguments({ platform: 'ios', plugin: '.' }).isDevice(), false);
+});
+
+test('a device run is --device and the UDID, never --emulator', () => {
+    assert.deepEqual(getIosDeviceRunArgs(['run', 'ios', '--no-telemetry'], '0000-UDID'), ['run', 'ios', '--no-telemetry', '--device', '--target', '0000-UDID']);
+    assert.ok(!getIosDeviceRunArgs(['run', 'ios'], 'x').includes('--emulator'));
+});
+
+test('--device is not repeated when the arguments carry it, and no target means none is added', () => {
+    assert.deepEqual(getIosDeviceRunArgs(['build', 'ios', '--device']), ['build', 'ios', '--device']);
+});
+
+test('the LAN address is the first IPv4 that is not a loopback one', () => {
+    const interfaces = {
+        lo0: [{ family: 'IPv4', address: '127.0.0.1', internal: true }],
+        en0: [{ family: 'IPv6', address: 'fe80::1', internal: false }, { family: 'IPv4', address: '192.168.1.20', internal: false }]
+    };
+    assert.equal(getLanAddress(interfaces), '192.168.1.20');
+});
+
+test('with no address a device could reach, it refuses instead of reporting to the phone itself', () => {
+    assert.throws(() => getLanAddress({ lo0: [{ family: 'IPv4', address: '127.0.0.1', internal: true }] }), /--medicHost/);
+});
+
+test('the app reports to --medicHost first, then to this machine on a device, else to 127.0.0.1 (and the emulator\'s 10.0.2.2)', () => {
+    const server = (json) => new LocalServer(config(json), null, 1234);
+    assert.equal(server({ medicHost: '10.1.1.1', device: true }).getServerIP('ios'), '10.1.1.1');
+    assert.equal(server({}).getServerIP('ios'), '127.0.0.1');
+    assert.equal(server({}).getServerIP('android'), '10.0.2.2');
+    assert.equal(server({ medicHost: '10.1.1.1' }).getMedicAddress('ios'), 'ws://10.1.1.1:1234');
+});
+
+test('the build for a device has the user arguments and --device, and no target (a build has none)', () => {
+    assert.deepEqual(
+        getIosDeviceBuildArgs(['--buildConfig=/a/build.json']),
+        ['build', 'ios', '--buildConfig=/a/build.json', '--device', '--no-telemetry', '--no-update-notifier']
+    );
+    assert.deepEqual(getIosDeviceBuildArgs(['--device']).filter(a => a === '--device'), ['--device']);
+    assert.ok(!getIosDeviceBuildArgs([]).includes('--target'));
+});

@@ -286,9 +286,42 @@ iOS only parameter. The path to the sample TCC DB file, with permissions, to be 
 cordova-paramedic --platform ios --plugin cordova-plugin-contacts --tccDbPath tcc.db
 ```
 
+#### `--device` (optional)
+
+iOS only. Runs on a physical device instead of a simulator. paramedic adds `--emulator` to every other iOS run (CB-11472) and
+`cordova run ios` refuses `--device` together with it, so a device run takes neither that nor the simulator chooser: `--target` is the
+device's UDID (`xcrun xctrace list devices`), and the app is not uninstalled afterwards.
+
+```shell
+cordova-paramedic --platform ios --plugin . --device --target <udid> --appId com.example.paramedic \
+  --args=--buildConfig=/path/to/build.json
+```
+
+Three things differ from a simulator run:
+
+- **Signing.** The phone needs a signed app: pass the signing flags through `--args` (or a configuration file, where `args` may be an
+  array). A bundle id Cordova's default `org.apache.cordova.hellocordova` is taken, so give one the team can register with `--appId`.
+  A plugin that needs a capability (Hotspot, Access WiFi Information, ...) gets it from the profile Xcode creates for that id.
+- **The report address.** The app reports its results to this machine. A simulator can use `127.0.0.1`; a phone cannot, so with
+  `--device` paramedic uses this machine's address on the network, or the one given with `--medicHost`.
+- **Local network access.** iOS keeps an app from reaching an address on the local network until the user has answered its prompt,
+  and the prompt comes only from an app that asks. paramedic installs
+  [cordova-plugin-network-permission](https://github.com/MaximBelov/cordova-plugin-network-permission) into the temporary app, which
+  declares why and asks; the app connects to paramedic only after the answer, and the tests that start meanwhile are not lost. The
+  user answers the prompt on the phone once. Declined, the tests still run and show their result on the phone.
+
+#### `--appId` (optional)
+
+The bundle/application id of the temporary app. Defaults to Cordova's own (`org.apache.cordova.hellocordova`).
+
+#### `--medicHost` (optional)
+
+The address the app reports its results to: `127.0.0.1` by default, `10.0.2.2` for an Android emulator, and this machine's address on
+the network with `--device`.
+
 #### `--args` (optional)
 
-Add additional parameters to the `cordova build` and `cordova run` commands.
+Add additional parameters to the `cordova build` and `cordova run` commands. A string is split on whitespace; a configuration file may give an array.
 
 ```shell
 cordova-paramedic --platform ios --plugin cordova-plugin-contacts --args=--buildFlag='-UseModernBuildSystem=0'

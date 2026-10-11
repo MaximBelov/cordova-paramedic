@@ -42,9 +42,16 @@ cordova-paramedic --platform PLATFORM --plugin PATH [--justbuild --timeout MSECS
 --args: (optional) add command line args to the "cordova build" and "cordov run" commands
 --ci : (optional) Skip tests that require user interaction
 --cleanUpAfterRun : (optional) cleans up the application after the run
+--appId : (optional) bundle/application id of the temporary app (default: Cordova's own).
+    A physical iPhone needs one the signing team can register.
 --cli : (optional) A path to Cordova CLI
 --config : (optional) read configuration from paramedic configuration file
+--device : (optional) iOS only - run on a physical device instead of a simulator.
+    --target is then the device's UDID, and the app reports to this machine's LAN address
+    (see --medicHost). Signing goes through --args, e.g. --args=--buildConfig=/path/build.json
 --justbuild : (optional) just builds the project, without running the tests
+--medicHost : (optional) the address the app reports its results to
+    (default: 127.0.0.1, the Android emulator's 10.0.2.2, or this machine's LAN address with --device)
 --outputDir : (optional) path to save Junit results file & Device logs
 --skipMainTests : (optional) Do not run main (cordova-test-framework) tests
 --target : (optional) target to deploy to
@@ -55,7 +62,7 @@ cordova-paramedic --platform PLATFORM --plugin PATH [--justbuild --timeout MSECS
 --version : (optional) prints cordova-paramedic version and exits
 `;
 
-const argv = parseArgs(process.argv.slice(2), { string: ['plugin'] });
+const argv = parseArgs(process.argv.slice(2), { string: ['plugin', 'appId', 'medicHost'] });
 const pathToParamedicConfig = utilities.getConfigPath(argv.config);
 
 if (argv.version) {
@@ -114,6 +121,18 @@ if (argv.cli) {
 
 if (argv.args) {
     paramedicConfig.setArgs(argv.args);
+}
+
+if (argv.device) {
+    paramedicConfig.setDevice(true);
+}
+
+if (argv.appId) {
+    paramedicConfig.setAppId(argv.appId);
+}
+
+if (argv.medicHost) {
+    paramedicConfig.setMedicHost(argv.medicHost);
 }
 
 paramedic.run(paramedicConfig)
