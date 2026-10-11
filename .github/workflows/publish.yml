@@ -1,0 +1,47 @@
+name: Publish
+
+# Publishes cordova-paramedic-hotfix to npm on a push to master, when the version in package.json is not published yet: a push
+# that keeps the version publishes nothing, so a release is a version bump merged to master. By hand: Actions -> Publish -> Run workflow.
+# No token is kept here: npm trusted publishing (OIDC). It has to be set up once on npmjs.com, in the package's settings:
+# Trusted publisher -> GitHub Actions -> organization or user MaximBelov, repository cordova-paramedic, workflow filename publish.yml.
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      # trusted publishing needs npm 11.5.1 or newer, which Node 24 ships
+      - uses: actions/setup-node@v4.4.0
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - run: npm ci --ignore-scripts
+
+      - run: npm run lint
+
+      - run: npm run test-unit
+
+      - name: Publish a version that is new
+        run: |
+          name=$(node -p "require('./package.json').name")
+          version=$(node -p "require('./package.json').version")
+          if npm view "$name@$version" version > /dev/null 2>&1; then
+            echo "$name@$version is already published: nothing to do"
+          else
+            # a prerelease version needs a tag; "latest" is not for it
+            npm publish --access public --tag hotfix
+          fi
