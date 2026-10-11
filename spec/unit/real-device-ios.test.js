@@ -24,6 +24,8 @@ const { test } = require('node:test');
 
 const ParamedicConfig = require('../../lib/ParamedicConfig');
 const LocalServer = require('../../lib/LocalServer');
+const ParamedicTargetChooser = require('../../lib/ParamedicTargetChooser');
+const utilities = require('../../lib/utils/utilities');
 const { getLanAddress, getIosDeviceRunArgs, getIosDeviceBuildArgs, pickWiredIosDevice, pickUsbAndroidDevice } = require('../../lib/utils/utilities');
 
 const config = (json) => new ParamedicConfig({ platform: 'ios', ...json });
@@ -122,4 +124,16 @@ test('an Android phone reports on 127.0.0.1 (adb reverse), an emulator on 10.0.2
     const server = (json) => new LocalServer(config({ platform: 'android', ...json }), null, 1);
     assert.equal(server({ device: true }).getServerIP('android'), '127.0.0.1');
     assert.equal(server({}).getServerIP('android'), '10.0.2.2');
+});
+
+test('without --target, --device on Android takes the phone connected by USB, and a run without it does not ask adb', async () => {
+    const original = utilities.findUsbAndroidDevice;
+    utilities.findUsbAndroidDevice = () => 'SERIAL1';
+    try {
+        const chooser = (json) => new ParamedicTargetChooser('/app', config({ platform: 'android', ...json }));
+        assert.deepEqual(await chooser({ device: true }).chooseTarget(undefined), { target: 'SERIAL1' });
+        assert.deepEqual(await chooser({ device: true }).chooseTarget('GIVEN'), { target: 'GIVEN' });
+    } finally {
+        utilities.findUsbAndroidDevice = original;
+    }
 });
