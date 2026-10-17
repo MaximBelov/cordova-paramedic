@@ -54,13 +54,20 @@ Cordova Paramedic is currently used to automatically run all plugin tests on CI.
       - [`--verbose` (optional)](#--verbose-optional)
       - [`--cli` (optional)](#--cli-optional)
       - [`--justbuild` (optional)](#--justbuild-optional)
+      - [`--action` (optional)](#--action-optional)
+      - [`--version` (optional)](#--version-optional)
     - [Emulator/Device to use for tests](#emulatordevice-to-use-for-tests)
       - [`--target` (optional)](#--target-optional)
     - [Test configuration](#test-configuration)
-      - [`--timeout` (optional)](#--timeout-optional)
+      - [Timeout](#timeout)
       - [`--outputDir` (optional)](#--outputdir-optional)
       - [`--cleanUpAfterRun` (optional)](#--cleanupafterrun-optional)
       - [`--tccDb` (optional)](#--tccdb-optional)
+      - [`--device` (optional)](#--device-optional)
+      - [`--appId` (optional)](#--appid-optional)
+      - [`--medicHost` (optional)](#--medichost-optional)
+      - [`--ci` (optional)](#--ci-optional)
+      - [`--skipMainTests` (optional)](#--skipmaintests-optional)
       - [`--args` (optional)](#--args-optional)
   - [Configuration file](#configuration-file)
   - [API Interface](#api-interface)
@@ -236,6 +243,23 @@ Just builds the project, without running the tests.
 cordova-paramedic --platform ios --plugin cordova-plugin-inappbrowser --justbuild
 ```
 
+#### `--action` (optional)
+
+The `cordova` command the app is started with: `run` by default, `build` (what `--justbuild` sets), or `emulate`. paramedic waits for
+test results only after `run` or `emulate`.
+
+```shell
+cordova-paramedic --platform android --plugin cordova-plugin-device --action emulate
+```
+
+#### `--version` (optional)
+
+Prints the version of cordova-paramedic and exits.
+
+```shell
+cordova-paramedic --version
+```
+
 ### Emulator/Device to use for tests
 
 #### `--target` (optional)
@@ -254,13 +278,9 @@ cordova-paramedic --platform ios --plugin cordova-plugin-contacts --target "iPho
 
 ### Test configuration
 
-#### `--timeout` (optional)
+#### Timeout
 
-Time in millisecs to wait for tests to pass|fail (defaults to 10 minutes).
-
-```shell
-cordova-paramedic --platform ios --plugin cordova-plugin-inappbrowser --timeout 30000
-```
+A run that has not finished its tests after 60 minutes fails. The limit is fixed: there is no `--timeout` option.
 
 #### `--outputDir` (optional)
 
@@ -272,7 +292,7 @@ cordova-paramedic --platform ios --plugin cordova-plugin-inappbrowser --outputDi
 
 #### `--cleanUpAfterRun` (optional)
 
-Flag to indicate the sample application folder must be deleted.
+Deletes the temporary app's folder after the run, and stops the emulator or simulator it ran on (a physical phone is left alone).
 
 ```shell
 cordova-paramedic --platform ios --plugin cordova-plugin-inappbrowser --cleanUpAfterRun
@@ -283,7 +303,7 @@ cordova-paramedic --platform ios --plugin cordova-plugin-inappbrowser --cleanUpA
 iOS only parameter. The path to the sample TCC DB file, with permissions, to be copied to the simulator.
 
 ```shell
-cordova-paramedic --platform ios --plugin cordova-plugin-contacts --tccDbPath tcc.db
+cordova-paramedic --platform ios --plugin cordova-plugin-contacts --tccDb tcc.db
 ```
 
 #### `--device` (optional)
@@ -321,6 +341,20 @@ The bundle/application id of the temporary app. Defaults to Cordova's own (`org.
 The address the app reports its results to: `127.0.0.1` by default, `10.0.2.2` for an Android emulator, and this machine's address on
 the network with `--device`.
 
+#### `--ci` (optional)
+
+Installs a small plugin into the temporary app that sets `window.IS_CI = true`, so that tests needing a person (a dialog to answer, a
+picture to take) can skip themselves.
+
+```shell
+cordova-paramedic --platform android --plugin cordova-plugin-camera --ci
+```
+
+#### `--skipMainTests` (optional)
+
+Do not run the `cordova-plugin-test-framework` tests. These are the only tests paramedic runs, so the run stops at once with
+`No tests to run: --skipMainTests was used` and exits with code 1.
+
 #### `--args` (optional)
 
 Add additional parameters to the `cordova build` and `cordova run` commands. A string is split on whitespace; a configuration file may give an array.
@@ -331,12 +365,18 @@ cordova-paramedic --platform ios --plugin cordova-plugin-contacts --args=--build
 
 ## Configuration file
 
-Configuration file is used when no parameters are passed to `cordova-paramedic` call or explicitly specified via `--config` parameter:
+A configuration file is read only when given with `--config`. Called with no arguments, `cordova-paramedic` prints its usage and
+exits; it does not look for a file in the working directory.
+
+`--config` takes a path (absolute, or relative to the working directory). When nothing is there, it is taken as a name under the
+package's own `conf` folder, with `.config.json` added: `--config pr/local/android-12` reads `conf/pr/local/android-12.config.json`.
 
 ```shell
-cordova-paramedic           <- paramedic will attempt to find .paramedic.config.js in working directory
 cordova-paramedic --config ./sample-config/.paramedic.config.js
+cordova-paramedic --config pr/local/android-12
 ```
+
+Options given alongside `--config` override the file, except `--verbose` and `--cleanUpAfterRun`, which are read from the file only.
 
 Example configuration file is showed below.
 
@@ -354,9 +394,17 @@ More configuration file examples could be found in `sample-config` folder.
 
 ## API Interface
 
-You can also use `cordova-paramedic` as a module directly:
+You can also use paramedic as a module. The package has no working entry point of its own (`main` names a file it does not
+ship), so require the modules under `lib` and pass a `ParamedicConfig`:
 
 ```javascript
-const paramedic = require('cordova-paramedic');
-paramedic.run(config);
+const paramedic = require('cordova-paramedic-hotfix/lib/paramedic');
+const ParamedicConfig = require('cordova-paramedic-hotfix/lib/ParamedicConfig');
+
+paramedic.run(new ParamedicConfig({
+    platform: 'android',
+    plugins: ['./'],
+    action: 'run',
+    args: ''
+})).then((passed) => process.exit(passed ? 0 : 1));
 ```
