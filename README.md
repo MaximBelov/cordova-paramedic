@@ -124,19 +124,19 @@ A full Paramedic run will:
 **Using npmjs registry version:**
 
 ```shell
-npm install -g cordova-paramedic
+npm install -g cordova-paramedic-hotfix@hotfix
 ```
 
 **Using GitHub version:**
 
 ```shell
-npm install -g github:apache/cordova-paramedic
+npm install -g github:MaximBelov/cordova-paramedic
 ```
 
 or
 
 ```shell
-git clone https://github.com/apache/cordova-paramedic
+git clone https://github.com/MaximBelov/cordova-paramedic
 ```
 
 If cloning from GitHub, you will need to run `npm link` inside the checkout repository.
