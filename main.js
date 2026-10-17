@@ -27,7 +27,8 @@ const { utilities } = require('./lib/utils');
 
 const USAGE = `Error missing args.
 
-cordova-paramedic --platform PLATFORM --plugin PATH [--justbuild --timeout MSECS --version ...]
+cordova-paramedic --platform PLATFORM --plugin PATH [--justbuild --version ...]
+cordova-paramedic --config PATH
 
 --platform PLATFORM : the platform id. Currently supports 'ios', 'browser' 'android'.
     Path to platform can be specified as link to git repo like:
@@ -39,13 +40,15 @@ cordova-paramedic --platform PLATFORM --plugin PATH [--justbuild --timeout MSECS
     You may specify multiple --plugin flags and they will all
     be installed and tested together.
 
---args: (optional) add command line args to the "cordova build" and "cordov run" commands
---ci : (optional) Skip tests that require user interaction
---cleanUpAfterRun : (optional) cleans up the application after the run
+--action : (optional) the cordova command the app is started with: run (default), build or emulate
+--args : (optional) add command line args to the "cordova build" and "cordova run" commands
+--ci : (optional) sets window.IS_CI in the app, so tests that need a person can skip themselves
+--cleanUpAfterRun : (optional) deletes the temporary app and stops its emulator or simulator after the run
 --appId : (optional) bundle/application id of the temporary app (default: Cordova's own).
     A physical iPhone needs one the signing team can register.
 --cli : (optional) A path to Cordova CLI
---config : (optional) read configuration from paramedic configuration file
+--config : (optional) read configuration from a paramedic configuration file: a path, or a name under conf/
+    (pr/local/android-12 for conf/pr/local/android-12.config.json)
 --device : (optional) run on a physical phone instead of a simulator or emulator. With --target left out it is the iPhone
     connected by cable, or the Android phone connected by USB. An iPhone reports to this machine's LAN address (see
     --medicHost) and is signed through --args, e.g. --args=--buildConfig=/path/build.json; an Android phone reports
@@ -54,13 +57,14 @@ cordova-paramedic --platform PLATFORM --plugin PATH [--justbuild --timeout MSECS
 --medicHost : (optional) the address the app reports its results to
     (default: 127.0.0.1, the Android emulator's 10.0.2.2, or this machine's LAN address with --device)
 --outputDir : (optional) path to save Junit results file & Device logs
---skipMainTests : (optional) Do not run main (cordova-test-framework) tests
+--skipMainTests : (optional) do not run the cordova-plugin-test-framework tests. They are the only tests, so the run
+    stops at once and fails
 --target : (optional) target to deploy to
 --tccDb : (optional) iOS only - specifies the path for the TCC.db file to be copied.
---timeout MSECS : (optional) time in millisecs to wait for tests to pass|fail
-    (defaults to 10 minutes)
 --verbose : (optional) verbose mode. Display more information output
 --version : (optional) prints cordova-paramedic version and exits
+
+A run whose tests have not finished after 60 minutes fails. The limit is fixed.
 `;
 
 const argv = parseArgs(process.argv.slice(2), { string: ['plugin', 'appId', 'medicHost'] });
