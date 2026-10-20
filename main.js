@@ -27,7 +27,7 @@ const { utilities } = require('./lib/utils');
 
 const USAGE = `Error missing args.
 
-cordova-paramedic --platform PLATFORM --plugin PATH [--justbuild --version ...]
+cordova-paramedic --platform PLATFORM --plugin PATH [--justbuild --timeout MSECS --version ...]
 cordova-paramedic --config PATH
 
 --platform PLATFORM : the platform id. Currently supports 'ios', 'browser' 'android'.
@@ -61,10 +61,9 @@ cordova-paramedic --config PATH
     stops at once and fails
 --target : (optional) target to deploy to
 --tccDb : (optional) iOS only - specifies the path for the TCC.db file to be copied.
+--timeout MSECS : (optional) time in milliseconds to wait for the tests to pass or fail (default: 60 minutes)
 --verbose : (optional) verbose mode. Display more information output
 --version : (optional) prints cordova-paramedic version and exits
-
-A run whose tests have not finished after 60 minutes fails. The limit is fixed.
 `;
 
 const argv = parseArgs(process.argv.slice(2), { string: ['plugin', 'appId', 'medicHost'] });
@@ -138,6 +137,10 @@ if (argv.appId) {
 
 if (argv.medicHost) {
     paramedicConfig.setMedicHost(argv.medicHost);
+}
+
+if (argv.timeout !== undefined) {
+    paramedicConfig.setTimeout(argv.timeout);
 }
 
 paramedic.run(paramedicConfig)
