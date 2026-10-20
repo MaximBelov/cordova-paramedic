@@ -59,7 +59,7 @@ Cordova Paramedic is currently used to automatically run all plugin tests on CI.
     - [Emulator/Device to use for tests](#emulatordevice-to-use-for-tests)
       - [`--target` (optional)](#--target-optional)
     - [Test configuration](#test-configuration)
-      - [Timeout](#timeout)
+      - [`--timeout` (optional)](#--timeout-optional)
       - [`--outputDir` (optional)](#--outputdir-optional)
       - [`--cleanUpAfterRun` (optional)](#--cleanupafterrun-optional)
       - [`--tccDb` (optional)](#--tccdb-optional)
@@ -278,9 +278,14 @@ cordova-paramedic --platform ios --plugin cordova-plugin-contacts --target "iPho
 
 ### Test configuration
 
-#### Timeout
+#### `--timeout` (optional)
 
-A run that has not finished its tests after 60 minutes fails. The limit is fixed: there is no `--timeout` option.
+Time in milliseconds to wait for the tests to pass or fail (defaults to 60 minutes). A run that has not finished by then fails. In a
+configuration file it is `timeout`. A value that is not a positive number fails the run rather than falling back to the default.
+
+```shell
+cordova-paramedic --platform ios --plugin cordova-plugin-inappbrowser --timeout 1800000
+```
 
 #### `--outputDir` (optional)
 
@@ -394,11 +399,10 @@ More configuration file examples could be found in `sample-config` folder.
 
 ## API Interface
 
-You can also use paramedic as a module. The package has no working entry point of its own (`main` names a file it does not
-ship), so require the modules under `lib` and pass a `ParamedicConfig`:
+You can also use paramedic as a module. `run` takes a `ParamedicConfig` and resolves to whether the tests passed:
 
 ```javascript
-const paramedic = require('cordova-paramedic-hotfix/lib/paramedic');
+const paramedic = require('cordova-paramedic-hotfix');
 const ParamedicConfig = require('cordova-paramedic-hotfix/lib/ParamedicConfig');
 
 paramedic.run(new ParamedicConfig({

@@ -1,10 +1,10 @@
 {
   "name": "cordova-paramedic-hotfix",
-  "version": "2.0.0-hotfix.2",
+  "version": "2.0.0-hotfix.3",
   "author": "Apache Software Foundation",
   "license": "Apache-2.0",
   "description": "Use medic to test a cordova plugin locally",
-  "main": "paramedic.js",
+  "main": "lib/paramedic.js",
   "bin": {
     "cordova-paramedic": "./main.js"
   },
